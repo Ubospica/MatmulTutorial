@@ -5,6 +5,8 @@
 
 // 3090
 
+// orig with unwrap: 151.952
+
 #include <cuda.h>
 #include <cuda_fp16.h>
 #include <mma.h>
@@ -519,6 +521,7 @@ __global__ void matmul(half *A, half *B, half *C, int M, int N, int K,
   // ++frag_iter_A;
   loadFragB(FragB[0], SB[(0) % 4], 0);
 
+  #pragma unroll 4
   for (int ko = 0; ko < K / KI; ko += 1) {
 
     // 64x64x16 mma for each warp
@@ -569,8 +572,4 @@ __global__ void matmul(half *A, half *B, half *C, int M, int N, int K,
   storeAccum(SC, Accum);
   __syncthreads();
   storeSmemC(C, SC, M, N);
-  // epilogue(C, SC, Accum, M, N, alpha, beta);
-  // Epilogue<128, 128, 64, 64, 16, 16, 32, 2, 2> epi(C, SC, Accum, M, N, alpha,
-  //                                                  beta);
-  // epi();
 }

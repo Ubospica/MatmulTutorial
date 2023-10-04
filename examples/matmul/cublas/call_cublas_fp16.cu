@@ -63,20 +63,21 @@ inline cublasStatus_t
 gemm(cublasHandle_t handle,
      cublasOperation_t transA, cublasOperation_t transB,
      int m, int n, int k,
-     const float* alpha,
+     const float* alpha_,
      const half* A, int ldA,
      const half* B, int ldB,
-     const float* beta,
+     const float* beta_,
      half* C, int ldC)
 {
+  half alpha = 1.0, beta = 0.0;
   return cublasGemmEx(handle, transA, transB,
                       m, n, k,
-                      reinterpret_cast<const float*>(alpha),
+                      &alpha,
                       reinterpret_cast<const __half*>(A), CUDA_R_16F, ldA,
                       reinterpret_cast<const __half*>(B), CUDA_R_16F, ldB,
-                      reinterpret_cast<const float*>(beta),
+                      &beta,
                       reinterpret_cast<      __half*>(C), CUDA_R_16F, ldC,
-                      CUDA_R_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP);
+                      CUDA_R_16F, CUBLAS_GEMM_DEFAULT_TENSOR_OP);
 }
 #else
 inline cublasStatus_t
@@ -100,9 +101,9 @@ gemm(cublasHandle_t handle,
 }
 #endif
 
-int M = 1000;
-int N = 4000;
-int K = 4000;
+int M = 3072;
+int N = 4096;
+int K = 11008;
 #define MAX(a, b) (a) > (b) ? (a) : (b)
 
 /**

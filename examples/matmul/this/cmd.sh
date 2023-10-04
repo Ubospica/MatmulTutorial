@@ -56,3 +56,8 @@ nvcc -arch=sm_86  matmul-v10.cu main.cu -o test && ./test stages 4 multi_threadi
 nvcc -arch=sm_86  matmul-v11.cu main.cu -o test && ./test stages 4 multi_threading 2 iters 200
 nvcc -arch=sm_86  matmul-v12.cu main.cu -o test && ./test stages 4 iters 200
 nvcc -arch=sm_86  matmul-v13.cu main.cu -o test && ./test stages 4 iters 200
+
+
+nvcc -arch=sm_80  tmp.cu main.cu -o test && ./test stages 4 iters 200
+nvcc -arch=sm_80  -DDEBUG -Xcompiler -fopenmp tmp.cu main.cu -o test && ./test stages 4
+compute-sanitizer --tool memcheck ./test

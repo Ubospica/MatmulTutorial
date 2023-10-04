@@ -6,12 +6,17 @@
 #include <chrono>
 #include <string>
 #include <cassert>
-
+// #define DEBUG
 int STAGES = 1;
 int MULTI_THREADING = 1;
 int ITERS = 20;
 
-extern __global__ void matmul(half *A, half *B, half *C, int M, int N, int K, float alpha, float beta);
+using AB_type = half;
+using C_type = half;
+const int c_size = 2;
+// #define DEBUG
+
+extern __global__ void matmul(AB_type *A, AB_type *B, C_type *C, int M, int N, int K, float alpha, float beta);
 
 // #define DEBUG
 // #define PRINT
@@ -21,14 +26,15 @@ const int M = 1024;
 const int N = 1024;
 const int K = 1024;
 #else
-const int M = 5376;
-const int N = 5376;
-const int K = 2048;
+const int M = 4096;
+const int N = 4096;
+const int K = 4096;
 #endif
 #define MAX(a, b) (a) > (b) ? (a) : (b)
 
 float alpha = 1.0;
 float beta = 0.0;
+
 
 /**
  * Panic wrapper for unwinding CUDA runtime errors
@@ -77,16 +83,16 @@ int main(int argc, char *argv[])
     std::cout << "Test performance using shape M=" << M << ", N=" << N << ", K=" << K << "\n";
 #endif
     srand(time(NULL));
-    half *hA = (half *)malloc(M * K * 2);
-    half *hB = (half *)malloc(K * N * 2);
-    half *hC = (half *)malloc(M * N * 2);
-    half *golden = (half *)malloc(M * N * 2);
+    AB_type *hA = (AB_type *)malloc(M * K * 2);
+    AB_type *hB = (AB_type *)malloc(K * N * 2);
+    C_type *hC = (C_type *)malloc(M * N * c_size);
+    C_type *golden = (C_type *)malloc(M * N * c_size);
 
     for (int i = 0; i < M; ++i)
     {
         for (int j = 0; j < K; ++j)
         {
-            hA[i * K + j] = (half)(rand() % 1000 * 1 / 100 % 10 + 0.0);
+            hA[i * K + j] = (AB_type)(rand() % 1000 * 1 / 100 % 10 + 0.0);
         }
         for (int j = 0; j < N; ++j)
         {
@@ -99,7 +105,7 @@ int main(int argc, char *argv[])
     {
         for (int n = 0; n < N; ++n)
         {
-            hB[n * K + k] = (half)(rand() % 1000 * 1 / 100 % 10 + 0.0);
+            hB[n * K + k] = (AB_type)(rand() % 1000 * 1 / 100 % 10 + 0.0);
         }
     }
 
@@ -132,7 +138,7 @@ int main(int argc, char *argv[])
                 {
                     for (int kk = 0; kk < 64; ++kk)
                     {
-                        golden[(i + ii) * N + j + jj] = (half)accum[ii * 64 + jj];
+                        golden[(i + ii) * N + j + jj] = (C_type)accum[ii * 64 + jj];
                     }
                 }
             }
@@ -141,23 +147,23 @@ int main(int argc, char *argv[])
     std::cout << "Golden values done!\n";
 #endif
 
-    half *dA;
-    half *dB;
-    half *dC;
+    AB_type *dA;
+    AB_type *dB;
+    C_type *dC;
 
     CUDA_CHECK(cudaMalloc(&dA, M * K * 2));
     CUDA_CHECK(cudaMalloc(&dB, K * N * 2));
-    CUDA_CHECK(cudaMalloc(&dC, M * N * 2));
+    CUDA_CHECK(cudaMalloc(&dC, M * N * c_size));
 
     CUDA_CHECK(cudaMemcpy(dA, hA, M * K * 2, cudaMemcpyHostToDevice));
     CUDA_CHECK(cudaMemcpy(dB, hB, K * N * 2, cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemcpy(dC, hC, M * N * 2, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(dC, hC, M * N * c_size, cudaMemcpyHostToDevice));
 
     dim3 dimBlock(32, 2 * MULTI_THREADING, 2);
     dim3 dimGrid(N / 128, M / 128);
 
 #ifndef DEBUG
-    int smem_size = MAX(STAGES * 128 * 32 * 2 * 2, 128 * 128 * 4);
+    int smem_size = MAX(STAGES * 128 * 32 * 2 * 2 * 1.5, 128 * 128 * 4);
     if (smem_size >= (48 << 10))
     {
         CUDA_CHECK(cudaFuncSetAttribute(matmul,
@@ -194,7 +200,7 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef DEBUG
-    int smem_size = MAX(STAGES * 128 * 32 * 2 * 2, 128 * 128 * 4);
+    int smem_size = MAX(STAGES * 128 * 32 * 2 * 2 * 1.5, 128 * 128 * 4);
     std::cout << "Using shared memory = " << (double)smem_size / 1e3 << " KB.\n";
     if (smem_size >= (48 << 10))
     {
@@ -206,7 +212,7 @@ int main(int argc, char *argv[])
     matmul<<<dimGrid, dimBlock, smem_size, nullptr>>>(dA, dB, dC, M, N, K, alpha, beta);
     CUDA_CHECK(cudaGetLastError());
     std::cout << "Computing results done!\n";
-    CUDA_CHECK(cudaMemcpy(hC, dC, M * N * 2, cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(hC, dC, M * N * c_size, cudaMemcpyDeviceToHost));
 
 #ifdef PRINT
     std::cout << "Golden:" << std::endl;
@@ -245,7 +251,7 @@ int main(int argc, char *argv[])
             {
                 maxv = -maxv;
             }
-            if (diff / maxv > 1e-2)
+            if (diff / maxv > 1e-5)
             {
                 errors += 1;
             }
