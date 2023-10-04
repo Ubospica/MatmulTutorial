@@ -1,6 +1,8 @@
 # debug for correctness
 # cublas
 nvcc -arch=sm_80 call_cublas.cu -lcublas -o test_cublas && ./test_cublas
+nvcc -arch=sm_80 -std=c++17 -I ../../../3rdparty/cutlass/include -I ../../../3rdparty/cutlass/tools/util/include ampere_tensorop_gemm.cu -o test_cutlass
+./test_cutlass --m=3072 --n=4096 --k=4096
 
 # baseline
 nvcc -arch=sm_80  -DDEBUG -Xcompiler -fopenmp matmul-v00.cu main.cu -o test && ./test
