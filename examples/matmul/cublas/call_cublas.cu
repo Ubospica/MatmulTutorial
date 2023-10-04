@@ -100,9 +100,9 @@ gemm(cublasHandle_t handle,
 }
 #endif
 
-int M = 1000;
-int N = 4000;
-int K = 4000;
+int M = 4096;
+int N = 4096;
+int K = 4096;
 #define MAX(a, b) (a) > (b) ? (a) : (b)
 
 /**

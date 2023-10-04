@@ -521,7 +521,7 @@ __global__ void matmul(half *A, half *B, half *C, int M, int N, int K,
   // ++frag_iter_A;
   loadFragB(FragB[0], SB[(0) % 4], 0);
 
-  #pragma unroll 4
+  #pragma unroll 16
   for (int ko = 0; ko < K / KI; ko += 1) {
 
     // 64x64x16 mma for each warp

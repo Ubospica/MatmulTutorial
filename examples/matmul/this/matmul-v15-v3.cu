@@ -39,7 +39,7 @@ __device__ __forceinline__ void loadSmemA(half *smem, half *A, int M, int K,
     int logic_col = tid % 4 * 8;
     int row = i * 16 + tid / 8;
     int col = tid % 8 * 8;
-    col = col ^ (((row & 6) << 2));
+    col = col ^ (((row & 3) << 3));
     void *ptr = (void *)(smem + row * 64 + col);
     uint32_t smem_ptr = static_cast<uint32_t>(__cvta_generic_to_shared(ptr));
 
@@ -65,7 +65,7 @@ __device__ __forceinline__ void predLoadSmemA(half *smem, half *A, int M, int K,
     int logic_col = tid % 4 * 8;
     int row = i * 16 + tid / 8;
     int col = tid % 8 * 8;
-    col = col ^ (((row & 6) << 2));
+    col = col ^ (((row & 3) << 3));
     void *ptr = (void *)(smem + row * 64 + col);
     uint32_t smem_ptr = static_cast<uint32_t>(__cvta_generic_to_shared(ptr));
 
@@ -94,7 +94,7 @@ __device__ __forceinline__ void loadSmemB(half *smem, half *B, int N, int K,
     int logic_col = tid % 4 * 8;
     int row = i * 16 + tid / 8;
     int col = tid / 4 % 2 * 32 + tid % 4 * 8;
-    col = col ^ (((row & 6) << 2));
+    col = col ^ (((row & 3) << 3));
     void *ptr = (void *)(smem + row * 64 + col);
     uint32_t smem_ptr = static_cast<uint32_t>(__cvta_generic_to_shared(ptr));
 
@@ -120,7 +120,7 @@ __device__ __forceinline__ void predLoadSmemB(half *smem, half *B, int N, int K,
     int logic_col = tid % 4 * 8;
     int row = i * 16 + tid / 8;
     int col = tid / 4 % 2 * 32 + tid % 4 * 8;
-    col = col ^ (((row & 6) << 2));
+    col = col ^ (((row & 3) << 3));
     void *ptr = (void *)(smem + row * 64 + col);
     uint32_t smem_ptr = static_cast<uint32_t>(__cvta_generic_to_shared(ptr));
 
@@ -155,7 +155,7 @@ __device__ __forceinline__ void loadFragA(unsigned int *frag, half *smem,
     int col = ki * KII + tx / 8 % 2 * 8;
     col = row % 2 * 32 + col;
     row = row / 2;
-    col = col ^ (((row & 6) << 2));
+    col = col ^ (((row & 3) << 3));
     void *ptr = (void *)(smem + row * 64 + col);
     uint32_t smem_ptr = static_cast<uint32_t>(__cvta_generic_to_shared(ptr));
     asm volatile(
@@ -180,7 +180,7 @@ __device__ __forceinline__ void loadFragB(unsigned int *frag, half *smem,
     int col = ki * KII + tx / 8 % 2 * 8;
     col = row % 2 * 32 + col;
     row = row / 2;
-    col = col ^ (((row & 6) << 2));
+    col = col ^ (((row & 3) << 3));
     void *ptr = (void *)(smem + row * 64 + col);
     uint32_t smem_ptr = static_cast<uint32_t>(__cvta_generic_to_shared(ptr));
     asm volatile(

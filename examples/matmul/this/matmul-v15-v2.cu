@@ -40,7 +40,7 @@ __device__ __forceinline__ void loadSmemA(half *smem, half *A, int M, int K,
     int logic_col = tid % 4 * 8;
     int row = i * 16 + tid / 8;
     int col = tid % 8 * 8;
-    col = col ^ (((row & 6) << 2));
+    col = col ^ (((row & 3) << 3));
     void *ptr = (void *)(smem + row * 64 + col);
     uint32_t smem_ptr = static_cast<uint32_t>(__cvta_generic_to_shared(ptr));
 
@@ -66,7 +66,7 @@ __device__ __forceinline__ void predLoadSmemA(half *smem, half *A, int M, int K,
     int logic_col = tid % 4 * 8;
     int row = i * 16 + tid / 8;
     int col = tid % 8 * 8;
-    col = col ^ (((row & 6) << 2));
+    col = col ^ (((row & 3) << 3));
     void *ptr = (void *)(smem + row * 64 + col);
     uint32_t smem_ptr = static_cast<uint32_t>(__cvta_generic_to_shared(ptr));
 
@@ -95,7 +95,7 @@ __device__ __forceinline__ void loadSmemB(half *smem, half *B, int N, int K,
     int logic_col = tid % 4 * 8;
     int row = i * 16 + tid / 8;
     int col = tid / 4 % 2 * 32 + tid % 4 * 8;
-    col = col ^ (((row & 6) << 2));
+    col = col ^ (((row & 3) << 3));
     void *ptr = (void *)(smem + row * 64 + col);
     uint32_t smem_ptr = static_cast<uint32_t>(__cvta_generic_to_shared(ptr));
 
@@ -121,7 +121,7 @@ __device__ __forceinline__ void predLoadSmemB(half *smem, half *B, int N, int K,
     int logic_col = tid % 4 * 8;
     int row = i * 16 + tid / 8;
     int col = tid / 4 % 2 * 32 + tid % 4 * 8;
-    col = col ^ (((row & 6) << 2));
+    col = col ^ (((row & 3) << 3));
     void *ptr = (void *)(smem + row * 64 + col);
     uint32_t smem_ptr = static_cast<uint32_t>(__cvta_generic_to_shared(ptr));
 
@@ -152,7 +152,7 @@ __device__ __forceinline__ void storeSmemC(half *C, float *smem, int M, int N) {
   for (int i = 0; i < 128; ++i) {
     int row = i;
     int col = tid;
-    int scol = col ^ ((row & 6) << 2);
+    int scol = col ^ ((row & 3) << 3);
     (C[(by * 128 + row) * N + bx * 128 + col]) = (half)smem[row * 128 + scol];
   }
 }
@@ -171,7 +171,7 @@ __device__ __forceinline__ void loadFragA(unsigned int *frag, half *smem,
     int col = ki * KII + tx / 16 * 8;
     col = row % 2 * 32 + col;
     row = row / 2;
-    col = col ^ (((row & 6) << 2));
+    col = col ^ (((row & 3) << 3));
     void *ptr = (void *)(smem + row * 64 + col);
     uint32_t smem_ptr = static_cast<uint32_t>(__cvta_generic_to_shared(ptr));
     asm volatile(
@@ -196,7 +196,7 @@ __device__ __forceinline__ void loadFragB(unsigned int *frag, half *smem,
     int col = ki * KII + tx / 16 * 8;
     col = row % 2 * 32 + col;
     row = row / 2;
-    col = col ^ (((row & 6) << 2));
+    col = col ^ (((row & 3) << 3));
     void *ptr = (void *)(smem + row * 64 + col);
     uint32_t smem_ptr = static_cast<uint32_t>(__cvta_generic_to_shared(ptr));
     asm volatile(
@@ -221,7 +221,7 @@ __device__ __forceinline__ void storeAccum(float *ptr, float *frag) {
         for (int c = 0; c < 2; ++c) {
           int row = tz * 64 + i * 16 + r * 8 + tx / 4;
           int col = ty * 64 + j * 16 + c * 8 + tx % 4 * 2;
-          int scol = col ^ ((row & 6) << 2);
+          int scol = col ^ ((row & 3) << 3);
           ptr[row * 128 + scol] = frag[i * 32 + j * 8 + r * 4 + c * 2 + 0];
           ptr[row * 128 + (scol + 1)] =
               frag[i * 32 + j * 8 + r * 4 + c * 2 + 1];
